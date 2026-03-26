@@ -350,7 +350,7 @@ def risk_breakdown(prob: float, amount: float, is_new_device: bool,
         "Geo Anomaly":       round(85 if geo_flag else 5),
         "Time-of-Day Risk":  round(40 if datetime.now().hour < 6 or datetime.now().hour > 22 else 10),
     }
-                       def plot_radar(data_dict):
+def plot_radar(data_dict):
     import plotly.express as px
 
     categories = list(data_dict.keys())
