@@ -22,7 +22,6 @@ Upgrade Log
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
 import plotly.express as px
 import os, time, uuid, random
 from datetime import datetime, timedelta
@@ -351,6 +350,21 @@ def risk_breakdown(prob: float, amount: float, is_new_device: bool,
         "Geo Anomaly":       round(85 if geo_flag else 5),
         "Time-of-Day Risk":  round(40 if datetime.now().hour < 6 or datetime.now().hour > 22 else 10),
     }
+                       def plot_radar(data_dict):
+    import plotly.express as px
+
+    categories = list(data_dict.keys())
+    values = list(data_dict.values())
+
+    fig = px.line_polar(
+        r=values,
+        theta=categories,
+        line_close=True
+    )
+
+    fig.update_traces(fill='toself')
+
+    return fig
 
 def prevention_tips(status: str, amount: float, velocity: bool,
                     geo: bool, new_device: bool) -> list:
@@ -766,7 +780,7 @@ with tabs[1]:
         ds_normal = len(df) - ds_fraud
         ds_pct    = round(ds_fraud / len(df) * 100, 3)
 
-        fig_pie = go.Figure(go.Pie(
+        fig_pie = px.pie(
             labels=["Normal Transactions", "Fraud Transactions"],
             values=[ds_normal, ds_fraud],
             hole=0.55,
@@ -774,7 +788,7 @@ with tabs[1]:
                         line=dict(color="#07090f", width=3)),
             textinfo="percent+label",
             textfont=dict(color="white", size=12, family="JetBrains Mono"),
-        ))
+        )
         fig_pie.add_annotation(
             text=f"<b>{ds_pct}%</b><br>Fraud", x=0.5, y=0.5,
             font=dict(size=14, color="#ff4b4b", family="JetBrains Mono"),
@@ -825,7 +839,7 @@ with tabs[1]:
         with c1:
             s_fraud  = st.session_state["fraud_count"]
             s_normal = st.session_state["total"] - s_fraud
-            fig_sp   = go.Figure(go.Pie(
+            fig_sp   = px.pie(
                 labels=["Normal", "Fraud"],
                 values=[max(s_normal, 0.0001), max(s_fraud, 0.0001)],
                 hole=0.5,
@@ -833,7 +847,7 @@ with tabs[1]:
                             line=dict(color="#07090f", width=2)),
                 textinfo="percent+label",
                 textfont=dict(color="white", size=11, family="JetBrains Mono"),
-            ))
+            )
             fig_sp.update_layout(
                 paper_bgcolor=BG, plot_bgcolor=BG,
                 font=dict(color="#8aa5c0"),
@@ -847,7 +861,7 @@ with tabs[1]:
         # ── Risk Distribution Bar ─────────────────────────────────────────────
         with c2:
             counts = hist_df["Status"].value_counts().reindex(["LOW","MEDIUM","HIGH"], fill_value=0)
-            fig_bar = go.Figure(go.Bar(
+            fig_bar = px.bar(
                 x=counts.index.tolist(),
                 y=counts.values.tolist(),
                 marker_color=[CLRS[k] for k in counts.index],
@@ -855,7 +869,7 @@ with tabs[1]:
                 textposition="outside",
                 textfont=dict(color="white", family="JetBrains Mono"),
                 width=0.5,
-            ))
+            )
             fig_bar.update_layout(
                 paper_bgcolor=BG, plot_bgcolor=BG,
                 font=dict(color="#8aa5c0"),
@@ -872,7 +886,7 @@ with tabs[1]:
         # ── Risk Score Line ───────────────────────────────────────────────────
         with c3:
             fig_line = go.Figure()
-            fig_line.add_trace(go.Scatter(
+            fig_line=px.line(
                 x=hist_df["Txn #"], y=hist_df["Risk Score"],
                 mode="lines+markers",
                 line=dict(color="#00c8ff", width=2),
@@ -880,7 +894,7 @@ with tabs[1]:
                             line=dict(color="#07090f", width=1)),
                 fill="tozeroy",
                 fillcolor="rgba(0,200,255,0.06)",
-            ))
+            )
             fig_line.add_hline(y=70, line_dash="dash", line_color="#ff4b4b",
                                annotation_text="HIGH", annotation_font_color="#ff4b4b")
             fig_line.add_hline(y=30, line_dash="dash", line_color="#ffa726",
@@ -902,12 +916,12 @@ with tabs[1]:
             for s, c in CLRS.items():
                 sub = hist_df[hist_df["Status"] == s]
                 if not sub.empty:
-                    fig_sc.add_trace(go.Scatter(
+                    fig_sc=px.scatter(
                         x=sub["Amount ($)"], y=sub["Risk Score"],
                         mode="markers", name=s,
                         marker=dict(color=c, size=9, opacity=0.85,
                                     line=dict(color="#07090f", width=1)),
-                    ))
+                    )
             fig_sc.update_layout(
                 paper_bgcolor=BG, plot_bgcolor=BG,
                 font=dict(color="#8aa5c0"),
@@ -923,7 +937,7 @@ with tabs[1]:
         # ── Location Frequency Bar ────────────────────────────────────────────
         if "Location" in hist_df.columns:
             loc_counts = hist_df["Location"].value_counts().head(8)
-            fig_loc = go.Figure(go.Bar(
+            fig_loc = px.bar(
                 y=loc_counts.index.tolist(),
                 x=loc_counts.values.tolist(),
                 orientation="h",
@@ -931,7 +945,7 @@ with tabs[1]:
                 text=loc_counts.values.tolist(),
                 textposition="outside",
                 textfont=dict(color="white"),
-            ))
+            )
             fig_loc.update_layout(
                 paper_bgcolor=BG, plot_bgcolor=BG,
                 font=dict(color="#8aa5c0"),
@@ -1262,18 +1276,17 @@ with tabs[4]:
     }
     stat_df = pd.DataFrame(stat_data)
 
-    fig_fraud_types = go.Figure()
-    fig_fraud_types.add_trace(go.Bar(
+    fig_fraud_types = px.Bar(
         x=stat_df["Category"], y=stat_df["Prevalence%"],
         name="Prevalence (%)", marker_color="#00c8ff",
         yaxis="y1",
-    ))
-    fig_fraud_types.add_trace(go.Scatter(
+    )
+    fig_fraud_types=px.scatter(
         x=stat_df["Category"], y=stat_df["Avg Loss (₹)"],
         name="Avg Loss (₹)", marker_color="#ffa726",
         mode="lines+markers", line=dict(width=2),
         yaxis="y2",
-    ))
+    )
     fig_fraud_types.update_layout(
         paper_bgcolor="#0d1525", plot_bgcolor="#0d1525",
         font=dict(color="#8aa5c0", family="JetBrains Mono"),
